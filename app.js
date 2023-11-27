@@ -4,7 +4,10 @@ const cors = require('cors')
 const bodyParser = require('body-parser')
 require('dotenv').config()
 
+const usersRoute = require('./routes/users')
+const produtosRoute = require('./routes/produtos')
 const mongoose = require('mongoose')
+
 
 mongoose.set('strictQuery', false)
 mongoose.Promise = global.Promise
@@ -17,6 +20,9 @@ mongoose.connect(process.env.MONGO_URL).then(() => {
 app.use(bodyParser.urlencoded({extended: false}))
 app.use(bodyParser.json())
 app.use(cors())
+
+app.use('/api/users', usersRoute)
+app.use('/api/produtos', produtosRoute)
 
 app.use((req, res, next) => {
     const erro = new Error('404 ERROR - Not found')
