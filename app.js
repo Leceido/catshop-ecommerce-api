@@ -4,6 +4,16 @@ const cors = require('cors')
 const bodyParser = require('body-parser')
 require('dotenv').config()
 
+const mongoose = require('mongoose')
+
+mongoose.set('strictQuery', false)
+mongoose.Promise = global.Promise
+mongoose.connect(process.env.MONGO_URL).then(() => {
+    console.log('Connected to mongoDB');
+}).catch((err) => {
+    console.log('failed to connect to mongoDB' + err);
+})
+
 app.use(bodyParser.urlencoded({extended: false}))
 app.use(bodyParser.json())
 app.use(cors())
