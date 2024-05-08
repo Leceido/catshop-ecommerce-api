@@ -3,6 +3,9 @@ const app = express()
 const cors = require('cors')
 const bodyParser = require('body-parser')
 require('dotenv').config()
+const apiProduct = require("./routes/product")
+const apiUser = require('./routes/usuario')
+const apiPedido = require('./routes/pedido')
 
 const mongoose = require('mongoose')
 
@@ -17,6 +20,10 @@ mongoose.connect(process.env.MONGO_URL).then(() => {
 app.use(bodyParser.urlencoded({extended: false}))
 app.use(bodyParser.json())
 app.use(cors())
+
+app.use('/api/product', apiProduct)
+app.use('/api/usuario', apiUser)
+app.use('/api/pedido', apiPedido)
 
 app.use((req, res, next) => {
     const erro = new Error('404 ERROR - Not found')
