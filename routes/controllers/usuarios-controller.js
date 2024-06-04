@@ -4,6 +4,25 @@ const Usuario = mongoose.model('usuarios')
 const jwt = require('jsonwebtoken')
 const bcrypt = require('bcrypt')
 
+exports.getUsuario = async (req, res) => {
+    try {
+        const usuario = await Usuario.findOne({ _id: req.user.id })
+
+        if (!usuario) {
+            return res.status(404).send({ message: "Usuario não encontrato" })
+        }
+
+        res.status(200).send({
+            id: usuario._id,
+            nome: usuario.nome,
+            user: usuario.user,
+            email: usuario.email,
+        })
+    } catch (error) {
+        res.status(500).send({ messagem: "Internal server error" })
+    }
+}
+
 exports.postCadastrar = async (req, res) => {
     try {
         const userDB = await Usuario.findOne({ user: req.body.user })

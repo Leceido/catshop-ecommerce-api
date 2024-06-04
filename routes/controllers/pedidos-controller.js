@@ -52,7 +52,6 @@ exports.postPedido = async (req, res) => {
 
 
 
-
         const newPedido = new Pedido({
             id_produto: req.body.id_produto,
             id_cliente: req.user.id,
