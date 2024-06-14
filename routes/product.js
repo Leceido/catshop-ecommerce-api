@@ -47,8 +47,12 @@ router.get('/', async (req, res) => {
                     };
 
                     const command = new s3.GetObjectCommand(GetObjectParams);
-                    const url = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
-                    urlImagens.push(url);
+                    const url = await getSignedUrl(s3Client, command, { expiresIn: 60 * 24 * 30 });
+                    const obj = {
+                        url: url,
+                        name: imagem
+                    }
+                    urlImagens.push(obj);
                     return urlImagens
                 }))
                 return {
@@ -57,10 +61,7 @@ router.get('/', async (req, res) => {
                     quantidade: produto.quantidade,
                     preco: produto.preco,
                     anunciante: produto.anunciante,
-                    imagens: {
-                        name: produto.imagens,
-                        url: urlImagens
-                    }
+                    imagens: urlImagens
 
                 }
             }))
@@ -84,8 +85,12 @@ router.get('/:id', async (req, res) => {
             };
 
             const command = new s3.GetObjectCommand(GetObjectParams);
-            const url = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
-            urlImagens.push(url);
+            const url = await getSignedUrl(s3Client, command, { expiresIn: 60 * 24 * 30 });
+            const obj = {
+                url: url,
+                name: imagem
+            }
+            urlImagens.push(obj);
             return urlImagens
         }))
         res.status(200).send({
@@ -96,10 +101,7 @@ router.get('/:id', async (req, res) => {
                 quantidade: produto.quantidade,
                 preco: produto.preco,
                 anunciante: produto.anunciante,
-                imagens: {
-                    name: produto.imagens,
-                    url: urlImagens
-                }
+                imagens: urlImagens
             }
         })
 
@@ -209,21 +211,22 @@ router.put('/:id', login, upload.array('images'), async (req, res) => {
             produto.quantidade = req.body.quantidade;
         }
 
-
-        await Promise.all(files.map(async file => {
-            const params = {
-                Bucket: bucketName,
-                Key: randomImageName(),
-                Body: file.buffer,
-                ContentType: file.mimetype
-            }
-
-            produto.imagens.push(params.Key)
-
-            const command = new s3.PutObjectCommand(params)
-
-            await s3Client.send(command)
-        }))
+        if (req.files) {
+            await Promise.all(files.map(async file => {
+                const params = {
+                    Bucket: bucketName,
+                    Key: randomImageName(),
+                    Body: file.buffer,
+                    ContentType: file.mimetype
+                }
+    
+                produto.imagens.push(params.Key)
+    
+                const command = new s3.PutObjectCommand(params)
+    
+                await s3Client.send(command)
+            }))
+        }
 
         produto.save()
 

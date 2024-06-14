@@ -6,6 +6,8 @@ const login = require('../helpers/login')
 
 router.get('/', login, UsuariosController.getUsuario)
 
+router.put('/senha', login, UsuariosController.putSenha)
+
 router.post('/cadastrar', UsuariosController.postCadastrar)
 
 router.post('/login', UsuariosController.postLogin)

@@ -23,6 +23,34 @@ exports.getUsuario = async (req, res) => {
     }
 }
 
+exports.putSenha = async (req, res) => {
+    try {
+        const user = await  Usuario.findOne({_id: req.user.id})
+        const senha = await req.body.senha
+
+        if (senha == null || senha.length == 0) {
+            return res.status(401).send({ error: "Senha invalida" })
+        }
+
+        user.senha = senha
+
+        bcrypt.hash(user.senha, 10, (errBcrypt, hash) => {
+            if (errBcrypt) {
+                console.log(errBcrypt);
+                return res.status(500).send({ error: errBcrypt })
+            }
+
+            user.senha = hash
+
+            user.save()
+
+            res.status(200).send({message: "Senha Alterada"})
+        })
+    } catch (error) {
+        res.status(500).send({message: 'Internal server error'})
+    }
+}
+
 exports.postCadastrar = async (req, res) => {
     try {
         const userDB = await Usuario.findOne({ user: req.body.user })

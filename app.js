@@ -17,8 +17,8 @@ mongoose.connect(process.env.MONGO_URL).then(() => {
     console.log('failed to connect to mongoDB' + err);
 })
 
-app.use(bodyParser.urlencoded({extended: false}))
-app.use(bodyParser.json())
+app.use(bodyParser.urlencoded({limit: '300mb', extended: false}))
+app.use(bodyParser.json({limit: '300mb'}))
 app.use(cors())
 
 app.use('/api/product', apiProduct)
