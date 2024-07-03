@@ -3,6 +3,9 @@ require('../../models/Pedido')
 const Pedido = mongoose.model('pedidos')
 require('../../models/Produto')
 const Produto = mongoose.model('produtos')
+const { MercadoPagoConfig, Preference } = require('mercadopago')
+const client = new MercadoPagoConfig({ accessToken: process.env.VENDEDOR1_MERCADOPAGO_ACESS_TOKEN })
+const preference = new Preference(client)
 
 exports.getPedido = async (req, res) => {
     try {
@@ -21,7 +24,8 @@ exports.getPedido = async (req, res) => {
                                 preco: produto.preco
                             },
                             quantidade: pedido.quantidade,
-                            valor_total: pedido.valor_total
+                            valor_total: pedido.valor_total,
+                            status: pedido.preference_id
                         }
                     }
                     return {
@@ -31,7 +35,8 @@ exports.getPedido = async (req, res) => {
                             id: pedido.id_produto
                         },
                         quantidade: pedido.quantidade,
-                        valor_total: pedido.valor_total
+                        valor_total: pedido.valor_total,
+                        preference_id: pedido.preference_id
                     }
                 }))
         })
@@ -42,29 +47,61 @@ exports.getPedido = async (req, res) => {
 
 exports.postPedido = async (req, res) => {
     try {
-        const produto = await Produto.findOne({ _id: req.body.id_produto })
-        if (!produto) {
-            return res.status(404).send({ message: "Produto não encontrado" })
-        }
-        if (produto.quantidade < req.body.quantidade) {
-            return res.status(401).send({ message: "Quantidade indisponivel" })
-        }
+        const produtos = req.body.items
+        const items = []
+        const errors = []
+        await Promise.all(produtos.map(async produtoBody => {
+            const produto = await Produto.findOne({ _id: produtoBody.id_produto })
+            if (!produto) {
+                errors.push({ message: "Produto não encontrado", id: produtoBody.id_produto, status: 404});
+                return;
+            }
+            if (produto.quantidade < produtoBody.quantidade) {
+                errors.push({ message: "Quantidade indisponível", id: produtoBody.id_produto, status: 401 });
+                return;
+            }
+            const item = {
+                id: produto._id,
+                title: produto.nome,
+                quantity: Number(produtoBody.quantidade),
+                unit_price: Number(produto.preco)
+            }
+            produto.quantidade -= produtoBody.quantidade
+            await produto.save()
 
+            items.push(item)
+        }))
 
+        if (errors.length > 0) {
+            return res.status(400).json({ errors });
+        }
+        
+
+        const response = await preference.create({
+                body: {
+                    items: items,
+                    back_urls: {
+                        success: 'http://127.0.0.1:3000/pedido/status',
+                        failure: 'http://127.0.0.1:3000/pedido/status',
+                        pending: 'http://127.0.0.1:3000/pedido/status'
+                    },
+                    auto_return: "approved",
+                }
+        })
 
         const newPedido = new Pedido({
-            id_produto: req.body.id_produto,
+            items: req.body.items,
             id_cliente: req.user.id,
-            quantidade: req.body.quantidade,
-            valor_total: produto.preco * req.body.quantidade
+            valor_total: 1,
+            id_preference: response.id
         })
 
         await newPedido.save()
 
-        produto.quantidade -= req.body.quantidade
-        await produto.save()
-
-        res.status(201).send({ message: "Pedido criado" })
+        res.status(201).send({ 
+            message: "Pedido criado",
+            preference: response
+         })
     } catch (error) {
         console.log(error);
         res.status(500).send({ message: "Internal server error" })
